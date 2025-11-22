@@ -7,8 +7,8 @@
 // @include      /^https?:\/\/.*\/vue\/index\.html.*/
 // @grant        unsafeWindow
 // @run-at       document-start
-// @updateURL    https://raw.githubusercontent.com/YourUsername/YourRepo/main/script.user.js
-// @downloadURL  https://raw.githubusercontent.com/YourUsername/YourRepo/main/script.user.js
+// @updateURL    https://raw.githubusercontent.com/caffetsong/legado-fast-page/main/legado-fast-page.user.js
+// @downloadURL  https://raw.githubusercontent.com/caffetsong/legado-fast-page/main/legado-fast-page.user.js
 // ==/UserScript==
 
 (function () {
