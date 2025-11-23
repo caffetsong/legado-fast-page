@@ -1,24 +1,25 @@
 // ==UserScript==
-// @name         开源阅读(Legado)预加载增强器
-// @namespace    https://github.com/YourUsername/Legado-Enhancer
+// @name         开源阅读(Legado)预加载
+// @namespace    https://github.com/caffetsong/legado-fast-page
 // @version      2.0.0
-// @description  通过预加载，加快开源阅读(Legado)Web服务的翻页速度
+// @description  通过预加载，加快开源阅读(Legado)Web服务的翻页速度。
+// @author       caffetsong
 // @license      GPL-3.0
-// @include      /^https?:\/\/.*\/vue\/index\.html.*/
+// @match        http://*/vue/index.html*
+// @match        https://*/vue/index.html*
 // @grant        unsafeWindow
 // @run-at       document-start
 // @updateURL    https://raw.githubusercontent.com/caffetsong/legado-fast-page/main/legado-fast-page.user.js
 // @downloadURL  https://raw.githubusercontent.com/caffetsong/legado-fast-page/main/legado-fast-page.user.js
 // ==/UserScript==
 
+
 (function () {
     'use strict';
 
     const CONFIG = {
-        CONTENT_SELECTOR: 'div[chapterindex]',
-        TITLE_SELECTOR: 'div.title',
-        TOOLBAR_SELECTOR: 'div.tools',
-        BUTTON_SELECTOR: 'div.tool-icon',
+        CONTENT_CONTAINER_SELECTOR: 'div[chapterindex]',
+        CHAPTER_TITLE_SELECTOR: 'div.title',
     };
 
     const state = {
@@ -36,26 +37,22 @@
             error: 'color: #dc3545; font-weight: bold;',
             hijack: 'color: #9c27b0; font-weight: bold;'
         };
-        console.log(`%c🚀 Legado Enhancer [${level.toUpperCase()}]`, styles[level] || '', ...args);
+        console.log(`%c🚀 Legado-fast-page [${level.toUpperCase()}]`, styles[level] || '', ...args);
     }
 
-    // --- 核心渲染与加载逻辑 ---
-
     function renderContent(rawHtml) {
-        const contentContainer = document.querySelector(CONFIG.CONTENT_SELECTOR);
+        const contentContainer = document.querySelector(CONFIG.CONTENT_CONTAINER_SELECTOR);
         if (!contentContainer) return;
 
         const parser = new DOMParser();
         const doc = parser.parseFromString(rawHtml, 'text/html');
-        const newContent = doc.querySelector(CONFIG.CONTENT_SELECTOR);
+        const newContent = doc.querySelector(CONFIG.CONTENT_CONTAINER_SELECTOR);
 
         if (newContent) {
             contentContainer.innerHTML = newContent.innerHTML;
-            const newTitleEl = contentContainer.querySelector(CONFIG.TITLE_SELECTOR);
+            const newTitleEl = contentContainer.querySelector(CONFIG.CHAPTER_TITLE_SELECTOR);
             if (newTitleEl) document.title = newTitleEl.textContent.trim();
             log('success', `Render: 章节内容已瞬时渲染 (Index: ${state.currentChapterIndex})`);
-            // 渲染后强制滚动到顶部
-            window.scrollTo(0, 0);
         }
     }
 
@@ -100,74 +97,45 @@
         }
     }
 
-    function executePageTurn(direction) {
-        if (direction === 'next') {
-            const nextIndex = state.currentChapterIndex + 1;
-            if (state.prefetchedChapter.index === nextIndex) {
-                log('hijack', 'CACHE HIT: 缓存命中，零延迟渲染！');
-                state.currentChapterIndex = nextIndex;
-                renderContent(state.prefetchedChapter.content);
-                state.prefetchedChapter = { index: -1, content: null };
-                prefetchNextChapter();
-            } else {
-                log('hijack', 'CACHE MISS: 缓存未命中，执行实时加载。');
-                loadChapter(nextIndex);
-            }
-        } else if (direction === 'prev') {
-            loadChapter(state.currentChapterIndex - 1);
-        }
-    }
-
-    // --- 事件劫持系统 (V2.0 核心) ---
-
-    function setupHijackers() {
-        // 1. 键盘劫持
+    /**
+     * 事件劫持
+     */
+    function setupKeyboardHijacker() {
         window.addEventListener('keydown', (event) => {
+            // 只在阅读界面生效
             if (!window.location.hash.includes('chapter')) return;
+
             if (event.key === 'ArrowRight') {
-                event.preventDefault(); event.stopPropagation();
-                log('hijack', 'KEYBOARD: 劫持 -> [向右翻页]');
-                executePageTurn('next');
-            } else if (event.key === 'ArrowLeft') {
-                event.preventDefault(); event.stopPropagation();
-                log('hijack', 'KEYBOARD: 劫持 -> [向左翻页]');
-                executePageTurn('prev');
-            }
-        }, true);
+                log('hijack', 'HIJACK: 已劫持 -> [向右翻页]');
+                event.preventDefault();
+                event.stopPropagation();
 
-        // 2. 鼠标点击劫持 (针对 .tools 栏)
-        window.addEventListener('click', (event) => {
-            if (!window.location.hash.includes('chapter')) return;
-
-            // 检查点击是否发生在工具栏按钮上
-            const button = event.target.closest(CONFIG.BUTTON_SELECTOR);
-            const toolbar = event.target.closest(CONFIG.TOOLBAR_SELECTOR);
-
-            if (button && toolbar) {
-                // 获取工具栏中所有按钮
-                const buttons = Array.from(toolbar.querySelectorAll(CONFIG.BUTTON_SELECTOR));
-                const index = buttons.indexOf(button);
-
-                // 策略：第一个按钮是上一章，最后一个按钮是下一章
-                if (index === 0) {
-                    event.preventDefault(); event.stopPropagation();
-                    log('hijack', 'CLICK: 劫持 -> [上一章按钮]');
-                    executePageTurn('prev');
-                } else if (index === buttons.length - 1) {
-                    event.preventDefault(); event.stopPropagation();
-                    log('hijack', 'CLICK: 劫持 -> [下一章按钮]');
-                    executePageTurn('next');
+                const nextIndex = state.currentChapterIndex + 1;
+                if (state.prefetchedChapter.index === nextIndex) {
+                    log('hijack', 'CACHE HIT: 缓存命中，零延迟渲染！');
+                    state.currentChapterIndex = nextIndex;
+                    renderContent(state.prefetchedChapter.content);
+                    state.prefetchedChapter = { index: -1, content: null }; // 清空缓存
+                    prefetchNextChapter(); // 预加载下下章
+                } else {
+                    log('hijack', 'CACHE MISS: 缓存未命中，执行实时加载。');
+                    loadChapter(nextIndex);
                 }
+            } else if (event.key === 'ArrowLeft') {
+                log('hijack', 'HIJACK: 已劫持 -> [向左翻页]');
+                event.preventDefault();
+                event.stopPropagation();
+                loadChapter(state.currentChapterIndex - 1);
             }
-        }, true); // 捕获阶段至关重要
-
-        log('success', 'Hijacker: 全局事件劫持系统(键盘+鼠标)已部署。');
+        }, true); // 使用捕获阶段确保最高优先级
+        log('success', 'Hijacker: 键盘劫持器已部署。');
     }
 
-    // --- 初始化拦截器 (仅用于嗅探初始状态) ---
-
+    /**
+     * 在只负责初始化
+     */
     function processInitialRequest(url) {
-        if (state.bookBaseUrl) return;
+        if (state.bookBaseUrl) return; // 已经初始化，直接返回
 
         if (typeof url === 'string' && url.includes('/getBookContent')) {
             try {
@@ -176,7 +144,7 @@
                 const index = parseInt(urlObj.searchParams.get('index'), 10);
 
                 if (bookUrl && !isNaN(index)) {
-                    log('info', `Interceptor: 捕获到初始状态, Index: ${index}`);
+                    log('info', `Interceptor: 捕获到初始请求, Index: ${index}`);
                     state.bookBaseUrl = bookUrl;
                     state.currentChapterIndex = index;
                     log('success', 'State: 状态初始化成功!');
@@ -203,23 +171,28 @@
             processInitialRequest(url);
             return originalFetch.apply(this, args);
         };
-        log('info', 'Interceptor: 初始化嗅探器已部署。');
     }
 
-    // --- 启动 ---
-    log('info', 'V2.0.0 启动中...');
+    // --- 脚本入口 ---
+    log('info', '脚本已启动...');
     setupInterceptors();
-    setupHijackers();
+    setupKeyboardHijacker(); // 无论DOM是否加载，都优先部署劫持器
 
     window.addEventListener('DOMContentLoaded', () => {
         let attempts = 0;
-        const check = setInterval(() => {
-            if (document.querySelector(CONFIG.CONTENT_SELECTOR)) {
-                clearInterval(check);
-                log('success', '🚀 Legado Enhancer V2.0 已完全就绪。');
+        const maxAttempts = 40;
+        const checkInterval = 250;
+        const initializer = setInterval(() => {
+            if (document.querySelector(CONFIG.CONTENT_CONTAINER_SELECTOR)) {
+                clearInterval(initializer);
+                log('success', `Initializer: 正文容器已找到，就绪。`);
+                return;
             }
-            if (++attempts > 40) clearInterval(check);
-        }, 250);
+            attempts++;
+            if (attempts >= maxAttempts) {
+                clearInterval(initializer);
+                log('error', `Initializer: 在10秒内未找到正文容器，脚本可能无法正常工作。`);
+            }
+        }, checkInterval);
     });
-
 })();
