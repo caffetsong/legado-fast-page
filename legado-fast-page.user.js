@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         开源阅读(Legado)预加载
 // @namespace    https://github.com/caffetsong/legado-fast-page
-// @version      2.0.0
+// @version      2.0.1
 // @description  通过预加载，加快开源阅读(Legado)Web服务的翻页速度。
 // @author       caffetsong
 // @license      GPL-3.0
