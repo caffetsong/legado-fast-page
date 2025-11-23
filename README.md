@@ -11,8 +11,6 @@
 
 
 
-
-
 ## ✨ 核心功能
 
 **该脚本** 通过**预加载**，尝试加快翻页速度。
@@ -20,13 +18,12 @@
 
 ## 📥 安装方法
 
-1.  **安装管理器**：确保您的浏览器已安装 [Tampermonkey](https://www.tampermonkey.net/) (油猴) 或 Violentmonkey 扩展。
+1.  **安装管理器**：
+    *   推荐使用 [脚本猫 (ScriptCat)](https://scriptcat.org/)
+    *   或者使用 [Tampermonkey (油猴)](https://www.tampermonkey.net/)。
 2.  **安装脚本**：
-    *   **[点击这里从 Greasy Fork 安装](这里填入您GreasyFork的发布链接)** (推荐，可自动更新)
-    *   或者 [点击这里从 GitHub 安装](这里填入您GitHub Raw文件的链接)
-
-
-
+    *   [从 Greasy Fork 安装](https://greasyfork.org/zh-CN/scripts/556654)
+    *   或者 [从 GitHub 安装](https://raw.githubusercontent.com/caffetsong/legado-fast-page/main/legado-fast-page.user.js)
 ## 🎮 使用说明
 
 
